@@ -11,7 +11,7 @@
       "mode": "auto",
       "program": "${workspaceFolder}/example",
       "env": {},
-      "args": ["-cxfrw dev --debugmessage wow"]
+      "args": ["--log -c dev"]
     }
   ]
 }
