@@ -4,68 +4,100 @@ import (
 	"log"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 
-	"github.com/BlackwonderTF/go-flags/utils"
+	"github.com/BlackwonderTF/go-commander/utils"
 )
 
 type flag struct {
-	short    string
-	long     string
-	required bool
-	dfault   string
-	value    string
+	value string
 }
 
-var flags map[string]*flag = make(map[string]*flag)
-var args map[string]string = make(map[string]string)
+var version string
+var flags map[string]*flag = parseFlags()
 
-func (f flag) IsValid() bool {
-	return f.value != ""
-}
-
-func (f flag) String() *string {
-	return utils.CreateStringPointer(f.value)
-}
-
-func (f flag) Bool() *bool {
-	b, err := strconv.ParseBool(*f.String())
-
-	if err != nil {
-		return nil
+func checkRequired(f *flag, boolean bool) {
+	if f != nil && (boolean || f.value != "") {
+		return
 	}
 
-	return utils.CreateBoolPointer(b)
+	usageString := "placeholder"
+	log.Fatal(usageString)
 }
 
-func ReadFlag(key string) flag {
-	return *flags[key]
-}
+func getFlag(short string, long string) *flag {
+	var f *flag
 
-func ParseFlags() {
-	arguments := strings.Split(strings.Join(os.Args, " "), "-")
+	fs := flags[short]
+	fl := flags[long]
 
-	for i := 0; i < len(arguments); i++ {
-		regex, err := regexp.Compile("[a-zA-Z]+ .+")
-		if err != nil {
-			log.Fatal("Regex could not be compiled")
-		}
-
-		if !regex.MatchString(arguments[i]) {
-			copy(arguments[i:], arguments[i+1:])
-			arguments[len(arguments)-1] = ""
-			arguments = arguments[:len(arguments)-1]
-			i--
-		}
+	if fs != nil {
+		f = fs
+	} else if fl != nil {
+		f = fl
+	} else {
+		f = nil
 	}
+
+	return f
+}
+
+// String defines a flag
+func String(short string, long string, baseValue string, description string) string {
+	f := getFlag(short, long)
+	if f == nil || f.value == "" {
+		return baseValue
+	}
+	return f.value
+}
+
+// StringRequired defines a flag that is required
+func StringRequired(short string, long string, description string) string {
+	f := getFlag(short, long)
+	checkRequired(f, false)
+	return f.value
+}
+
+// Bool defines a boolean switch flag
+func Bool(short string, long string, description string) bool {
+	f := getFlag(short, long)
+	return f != nil
+}
+
+// parseFlags parses the command line arguments.
+func parseFlags() map[string]*flag {
+	argumentsRegex := regexp.MustCompile("(-[a-zA-Z]+(\\s[^-\\s]+){0,1}|--[a-zA-Z]+(=[^\\s]+){0,1})")
+	arguments := argumentsRegex.FindAllString(strings.Join(os.Args[1:], " "), -1)
+
+	args := make(map[string]*flag)
 
 	for _, arg := range arguments {
-		pair := strings.Split(strings.TrimSpace(arg), " ")
-		args[pair[0]] = pair[1]
+		pair := utils.RegSplit(strings.TrimSpace(arg), "[\\s=]")
+		var pairs []string
 
-		if flags[pair[0]] != nil {
-			flags[pair[0]].value = pair[1]
+		r := regexp.MustCompile("^-[a-zA-Z]+")
+		if r.MatchString(pair[0]) {
+			pair[0] = strings.ReplaceAll(pair[0], "-", "")
+			for _, key := range pair[0] {
+				pairs = append(pairs, string(key))
+			}
+		} else {
+			pair[0] = strings.ReplaceAll(pair[0], "-", "")
+			pairs = append(pairs, pair[0])
+		}
+
+		var value string
+		if len(pair) == 2 {
+			value = pair[1]
+		} else {
+			value = ""
+		}
+
+		for _, key := range pairs {
+			args[key] = new(flag)
+			args[key].value = value
 		}
 	}
+
+	return args
 }

@@ -3,10 +3,14 @@ package main
 import (
 	"log"
 
-	"github.com/BlackwonderTF/go-flags"
+	flags "github.com/BlackwonderTF/go-commander"
 )
 
 func main() {
-	flags.ParseFlags()
-	log.Println(*flags.ReadFlag("c").String())
+	config := flags.StringRequired("c", "configuration", "")
+	d := flags.String("d", "debugmessage", "dickhead", "")
+	logging := flags.Bool("l", "logging", "")
+	log.Println(config)
+	log.Println(d)
+	log.Println(logging)
 }
