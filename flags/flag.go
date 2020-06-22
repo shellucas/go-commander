@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"regexp"
@@ -23,8 +24,14 @@ type flag struct {
 	defaultValue string
 }
 
+var allFlags []*flag = []*flag{}
 var shortFlags map[string]*flag = make(map[string]*flag)
 var longFlags map[string]*flag = make(map[string]*flag)
+var help *bool
+
+func init() {
+	help = Bool("", "help", false, "Shows the usage of the program")
+}
 
 func createFlag(value value, short string, long string, defaultValue string, required bool, description string) *flag {
 	f := &flag{
@@ -35,8 +42,24 @@ func createFlag(value value, short string, long string, defaultValue string, req
 		value:        value,
 		defaultValue: defaultValue,
 	}
-	shortFlags[short] = f
-	longFlags[long] = f
+
+	if shortFlags[short] != nil {
+		log.Fatalf("Multiple flags with short flag \"%s\" exist", short)
+	}
+
+	if longFlags[long] != nil {
+		log.Fatalf("Multiple flags with long flag \"%s\" exist", long)
+	}
+
+	if short != "" {
+		shortFlags[short] = f
+	}
+
+	if long != "" {
+		longFlags[long] = f
+	}
+
+	allFlags = append(allFlags, f)
 
 	f.value.Set(defaultValue)
 
@@ -90,10 +113,32 @@ func Parse() {
 		}
 	}
 
-	for _, flag := range shortFlags {
+	if help != nil && *help {
+		fmt.Println(createUsage())
+		os.Exit(0)
+	}
+
+	for _, flag := range allFlags {
 		if flag.required && flag.value.Get() == "" {
-			// TODO show the CLI options
-			log.Fatal("PLACEHOLDER for missing required option")
+			fmt.Println(createUsage())
+			os.Exit(0)
 		}
 	}
+}
+
+func createUsage() string {
+	builder := strings.Builder{}
+
+	// TODO make this pretty pl0x
+	for _, f := range allFlags {
+		if f.short != "" {
+			builder.WriteString(fmt.Sprintf("\n\n-%s \t %s", f.short, f.description))
+		}
+
+		if f.long != "" {
+			builder.WriteString(fmt.Sprintf("\n\n--%s \t %s", f.long, f.description))
+		}
+	}
+
+	return builder.String()
 }
