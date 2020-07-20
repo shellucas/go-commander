@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/BlackwonderTF/go-commander/utils"
+	"github.com/shellucas/go-commander/utils"
 )
 
 type value interface {

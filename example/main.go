@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/BlackwonderTF/go-commander/flags"
+	"github.com/shellucas/go-commander/flags"
 )
 
 func main() {
